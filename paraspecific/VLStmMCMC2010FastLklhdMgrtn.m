@@ -1,5 +1,5 @@
 function VLStmMCMC2010FastLklhdMgrtn(data,r1,p10,a,b,p2,u,beta0,alpha0,epsilon0,delta0,lambda0,h0,h1,h2,h3,hmssng,h40,pI0,typ,niters,plotOutpt,rslts,para)
-disp('line2')
+
 %% Set default input parameters if no inputs are supplied
 if nargin==0
     load('C:\Users\timpo\OneDrive - University of Warwick\taubern_baybern\raw_data_plus_cleaning\matlab_bayesianmodel\data_final2.mat') % database
@@ -95,7 +95,6 @@ RXFwholestudy=(wholestudy.ALLRXFAIL==1&(wholestudy.MOS_RX_NEW_SX==0|(wholestudy.
 REL=(data.ALLRXFAIL==1&~(data.MOS_RX_NEW_SX==0|(data.PKDL-data.KARX==1))&~KothrObs&~(data.KARX+data.MOS_RX_NEW_SX>data.MIG_OUT)); % KA cases who suffered relapse (exclude PJNA58204 who suffered relapse after migrating out of study area)
 RELwholestudy=(wholestudy.ALLRXFAIL==1&~(wholestudy.MOS_RX_NEW_SX==0|(wholestudy.PKDL-wholestudy.KARX==1))&~KothrObswholestudy&~(wholestudy.KARX+wholestudy.MOS_RX_NEW_SX>wholestudy.MIG_OUT)); % for study-wide p4 estimation later
 RXP=(data.RXD_PKDL==1); % PKDL cases who were treated
-disp('89')
 % Make event time vectors
 tI=data.KA-origin; % KA onset
 tR=data.KARX+durRX-origin; % KA recovery
@@ -190,7 +189,7 @@ nAONRwholestudy=numel(AONRwholestudy);
 nANONR=numel(ANONR); % potentially active KA cases without onset or treatment time
 nANONRwholestudy=numel(ANONRwholestudy);
 nIPNIA=numel(IPNIA); % potential infection sources
-disp('162')
+
 %% DRAW INITIAL MISSING KA ONSET AND TREATMENT TIMES
 % Create vectors of lower and upper bounds for onset month
 tIlb=NaN(n,1);
@@ -227,7 +226,6 @@ end
 for i=1:nRNO
     tI(RNO(i))=randi([tIlb(RNO(i)),tIub(RNO(i))],1);
 end
-disp('195')
 % Create vectors of lower and upper bounds for onset month for active KA
 % cases at start of study
 tIlbA=NaN(n,1);
@@ -292,7 +290,7 @@ tRorD(DpreR)=tD(DpreR);
 
 %% DRAW INITIAL KA RELAPSE AND RELAPSE TREATMENT TIMES
 p4=mle(tRLwholestudy(RLOwholestudy)-tRwholestudy(RLOwholestudy)-1,'distribution','geo'); %study-wide distribution
-disp('224')
+
 % Relapse times for relapsers with missing relapse time
 for i=1:nRLNO
     j=RLNO(i);
@@ -300,7 +298,7 @@ for i=1:nRLNO
         tRL(j)=tR(j)+geornd(p4)+1;
     end
 end
-disp('232')
+
 % Relapse treatment times for all relapsers
 for i=1:nRL
     j=RL(i);
@@ -308,7 +306,7 @@ for i=1:nRL
         tRLR(j)=tRL(j)+nbinrnd(r0,p0)+1;
     end
 end
-disp('238')
+
 %% DRAW INITIAL PRE-SYMPTOMATIC INFECTION TIMES
 % Draw infection times from negative binomial distribution with parameters
 % r1 and p1
@@ -326,7 +324,7 @@ end
 
 % Make index vector to exclude cases with onset before maxIP or before or shortly after migration in
 I1=find(tI>maxIP&~IpreEXTIM&~EXTIMsoonI&~KothrObs);
-disp('256')
+
 %% INFECTION PRESSURE FROM KA AND PKDL CASES
 % Calculate distances between HHs
 [dHH,ia,ib]=CalcHHDists(data);
@@ -353,7 +351,7 @@ hv(strcmp(data.TYPE,'MAC_PAP'))=h1; % macular
 hv(strcmp(data.TYPE,'PLQ'))=h2; % plaque
 hv(strcmp(data.TYPE,'NOD'))=h3; % nodular
 hv(~isnan(tP)&strcmp(data.TYPE,''))=hmssng; % unexamined
-disp('283')
+
 % Construct infectiousness matrix (rows = individuals, columns = times)
 h=zeros(nIPNIA,tmax); % initialise infectiousness matrix
 % PKDL cases w/ prior KA
@@ -394,7 +392,7 @@ for i=1:nIMP
 end
 % Convert infectiousness matrix to sparse matrix
 h=sparse(h);
-disp('324')
+
 % Calculate HH-level infection pressure from KA and PKDL cases
 lambdaHHI=rateHH*h; % HH-level infection pressure
 lambdaI=lambdaHHI(ib,:); % expand to individual-level infection pressure
@@ -521,7 +519,7 @@ IM_INactvA=IM_IN(ismember(IM_OUT,actvA));
 % migration (during their 2nd obs)
 RAobs1actvA=IM_OUTactvA(tRA(IM_OUTactvA)>rng(IM_OUTactvA,2)-1);
 RAobs2actvA=IM_INactvA(tRA(IM_OUTactvA)>rng(IM_OUTactvA,2)-1);
-disp('451')
+
 % Calculate the number of asymptomatic infections without subsequent PKDL
 % during the study using the (initial) proportion of infections that lead
 % to KA (pI0), the observed number of KA cases (nI) and the observed number
@@ -750,7 +748,7 @@ ppvar=ppvar0;
 % Make vector for storing scale factor for proposal covariance matrix for block update
 c=NaN(niters+1,1);
 c(1)=1; % initial scale factor
-disp('680')
+
 % Set number of pre-symptomatic and asymptomatic infection times to propose new values for per iteration
 nEmoves=round(nOR/5); % number of pre-symptomatic infection times
 % Randomly select which KA cases to update infection times for in each iteration
@@ -914,7 +912,7 @@ acc_rate_RLO=0;
 % Parameters for plotting output
 nbins=50;
 scrnsz=get(0,'ScreenSize');
-disp('844')
+
 %% MCMC LOOP
 for k=1:niters
     %% UPDATE TRANSMISSION PARAMETERS USING ADAPTIVE RANDOM WALK METROPOLIS-HASTINGS    
@@ -1725,7 +1723,7 @@ for k=1:niters
             rej_PA=rej_PA+1;
         end
     end
-disp('1655')
+
     %% UPDATE MISSING KA ONSET TIMES
     for i=1:nNO
         j=NO(i); % get index of KA case without onset time
@@ -1965,7 +1963,7 @@ disp('1655')
             rej_AIRmove=rej_AIRmove+1;
         end
     end
-disp('1895')
+
     %% UPDATE MISSING TREATMENT TIMES OF CASES WITH ACTIVE KA AT START OF STUDY
     for i=1:nAONR
         j=AONR(i); % get index of potentially initially active KA case
