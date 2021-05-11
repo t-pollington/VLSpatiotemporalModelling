@@ -45,6 +45,7 @@ data.Properties.VariableNames{'HHNEWLNG'}='longitude';
 data.Properties.VariableNames{'HHNEWLAT'}='latitude';
  
 % Number of individuals
+nwholestudy=size(wholestudy,1);
 n=size(data,1);
 
 % Assume cases stop being infectious shortly after commencing treatment
@@ -74,10 +75,15 @@ tmax=stata_month(endyr,endmo)-origin;
 % Make indicator variables
 INTMIG_OUT=(data.INTMIG_OUT==1); % 1st observations for individuals who internally migrated (relocated to a different HH within the study area)
 INTMIG_IN=(data.INTMIG_IN==1); % 2nd observations for individuals who internally migrated 
+INTMIG_OUTwholestudy=(wholestudy.INTMIG_OUT==1); % for study-wide p4 estimation later
+INTMIG_INwholestudy=(wholestudy.INTMIG_IN==1); % for study-wide p4 estimation later
 KothrObs=((data.KA>=data.MIG_OUT&INTMIG_OUT)|(data.KA<data.MIG_IN&INTMIG_IN)); % observations for KA cases who internally migrated in which they did not have KA onset
+KothrObswholestudy=((wholestudy.KA>=wholestudy.MIG_OUT&INTMIG_OUTwholestudy)|(wholestudy.KA<wholestudy.MIG_IN&INTMIG_INwholestudy)); % for study-wide p4 estimation later
 PothrObs=((data.PKDL>=data.MIG_OUT&INTMIG_OUT)|(data.PKDL<data.MIG_IN&INTMIG_IN)); % observations of PKDL cases who internally migrated in which they did not have PKDL onset 
 K02_10=(data.KA_1210&(data.KA>origin|(data.KAYR>=startyr&isnan(data.KA)))&~KothrObs); % KA with onset during study (between start and end times)
+K02_10wholestudy=(wholestudy.KA_1210&(wholestudy.KA>origin|(wholestudy.KAYR>=startyr&isnan(wholestudy.KA)))&~KothrObswholestudy);
 actvK=((data.KA<=origin&data.KARX>origin)|(data.KAYR==startyr-1&isnan(data.KARX)))&isnan(data.MIG_IN); % (potentially) active KA at start of study
+actvKwholestudy=((wholestudy.KA<=origin&wholestudy.KARX>origin)|(wholestudy.KAYR==startyr-1&isnan(wholestudy.KARX)))&isnan(wholestudy.MIG_IN);
 prevK=(data.KAYR<startyr&~actvK); % KA before the start of the study
 IpreEXTIM=(K02_10&data.EXTMIG_IN==1&data.KA<=data.MIG_IN&data.KA>origin+maxIP); % KA onset before or at migration in
 EXTIMsoonI=(K02_10&data.EXTMIG_IN==1&data.KA>=data.MIG_IN&data.KA-data.MIG_IN<=maxIP_IM&data.KA>origin+maxIP); % KA onset within 6 months of migration in
@@ -85,36 +91,49 @@ IpreINTIM=(data.KA<=data.MIG_IN&INTMIG_IN&~prevK); % KA onset before or at inter
 PpreINTIM=(data.PKDL<=data.MIG_IN&INTMIG_IN); % PKDL onset before or at internal migration in
 PpreEXTIM=(isnan(data.KA)&data.PKDL<=data.MIG_IN&data.EXTMIG_IN==1); % PKDL onset (without prior KA) before or at external migration in
 RXF=(data.ALLRXFAIL==1&(data.MOS_RX_NEW_SX==0|(data.PKDL-data.KARX==1))&~KothrObs); % KA cases who suffered treatment failure (include CHMP78102 who had PKDL onset 1 month after KA treatment)
+RXFwholestudy=(wholestudy.ALLRXFAIL==1&(wholestudy.MOS_RX_NEW_SX==0|(wholestudy.PKDL-wholestudy.KARX==1))&~KothrObswholestudy); % for study-wide p4 estimation later
 REL=(data.ALLRXFAIL==1&~(data.MOS_RX_NEW_SX==0|(data.PKDL-data.KARX==1))&~KothrObs&~(data.KARX+data.MOS_RX_NEW_SX>data.MIG_OUT)); % KA cases who suffered relapse (exclude PJNA58204 who suffered relapse after migrating out of study area)
+RELwholestudy=(wholestudy.ALLRXFAIL==1&~(wholestudy.MOS_RX_NEW_SX==0|(wholestudy.PKDL-wholestudy.KARX==1))&~KothrObswholestudy&~(wholestudy.KARX+wholestudy.MOS_RX_NEW_SX>wholestudy.MIG_OUT)); % for study-wide p4 estimation later
 RXP=(data.RXD_PKDL==1); % PKDL cases who were treated
 disp('89')
 % Make event time vectors
 tI=data.KA-origin; % KA onset
 tR=data.KARX+durRX-origin; % KA recovery
-tIwholestudy=wholestudy.KA-origin; % for study-wide FitOTdistn() fit
-tRwholestudy=wholestudy.KARX+durRX-origin; % for study-wide FitOTdistn() fit
+tIwholestudy=wholestudy.KA-origin; % for study-wide p4 estimation later
+tRwholestudy=wholestudy.KARX+durRX-origin; % for study-wide p4 estimation later
 % Add 1 month of infectiousness for treatment failure KA cases
 tR(RXF)=tR(RXF)+1;
+tRwholestudy(RXFwholestudy)=tRwholestudy(RXFwholestudy)+1;
 tRL=data.KARX+data.MOS_RX_NEW_SX-origin; % KA relapse
 tRL(RXF)=NaN; % overwrite "relapse" times for treatment failures
+tRLwholestudy=wholestudy.KARX+wholestudy.MOS_RX_NEW_SX-origin; % for study-wide p4 estimation later
+tRLwholestudy(RXF)=NaN; % for study-wide p4 estimation later
 tRLR=NaN(n,1); % relapse recovery
 tP=data.PKDL-origin; % PKDL onset
+tPwholestudy=wholestudy.PKDL-origin;
 tRP=data.PKDL+data.PKDL_DUR-origin; % PKDL recovery
 % Overwrite resolution times with treatment times for treated PKDL cases.
 tRP(RXP)=max(data.PKRX(RXP),data.PKRX2(RXP))-origin; % use 2nd treatment time for case with 2 PKDL treatments
 tB=data.DOB-origin; % birth
+tBwholestudy=wholestudy.DOB-origin;
 tD=data.DEATH-origin; % death
+tDwholestudy=wholestudy.DEATH-origin; 
 tIM=data.MIG_IN-origin; % immigration
 tEM=data.MIG_OUT-origin; % emigration
  
 % Make index vectors for different groups of individuals
 I=find(K02_10); % KA cases with onset between start month and end month
+Iwholestudy=find(K02_10wholestudy);
 OR=find(K02_10&~isnan(tI)&(~isnan(tR)|~isnan(tD))); % KA cases with onset and treatment/death time
 NONR=find(K02_10&isnan(tI)&isnan(tR)); % KA cases missing onset and treatment time
+NONRwholestudy=find(K02_10wholestudy&isnan(tIwholestudy)&isnan(tRwholestudy));
 ONR=find(K02_10&~isnan(tI)&isnan(tR)&isnan(tD)); % KA cases with onset time but no treatment time who didn't die from KA
+ONRwholestudy=find(K02_10wholestudy&~isnan(tIwholestudy)&isnan(tRwholestudy)&isnan(tDwholestudy));
 RNO=find(K02_10&isnan(tI)&~isnan(tR)); % KA cases with treatment time but no onset time
+RNOwholestudy=find(K02_10wholestudy&isnan(tIwholestudy)&~isnan(tRwholestudy)); % KA cases with treatment time but no onset time
 NO=[NONR;RNO]; % KA cases missing onset time
 RLO=find(REL&~isnan(tRL)); % KA relapse cases with relapse times
+RLOwholestudy=find(RELwholestudy&~isnan(tRLwholestudy)); % for study-wide p4 estimation later
 RLNO=find(REL&isnan(tRL)); % KA relapse cases with missing relapse time
 RL=[RLO;RLNO];
 P=find(~isnan(tP)&~PothrObs); % PKDL cases
@@ -138,17 +157,24 @@ IM_IN=find(ismember(data.ORIG_ID,data.RESP_ID(INTMIG_OUT))&INTMIG_IN); % observa
 IM_IN=IM_IN(ismember(IM_IN,IM_OUT+1)); % for para-specific which have an internal study mig but which is lost to the para, this balances them, ready for IM_OUT_IN=[IM_OUT,IM_IN] later
 % KA cases who (potentially) initially had active KA
 AOR=find(actvK&~isnan(tI)&~isnan(tR)); % cases with active KA
+AORwholestudy=find(actvKwholestudy&~isnan(tIwholestudy)&~isnan(tRwholestudy));
 AONR=find(actvK&~isnan(tI)&isnan(tR)); % cases with KA onset before start of study but missing recovery time
+AONRwholestudy=find(actvKwholestudy&~isnan(tIwholestudy)&isnan(tRwholestudy));
 ANONR=find(actvK&isnan(tI)&isnan(tR)); % cases with missing KA onset and recovery time but onset in year preceding study start
+ANONRwholestudy=find(actvKwholestudy&isnan(tIwholestudy)&isnan(tRwholestudy));
 A=sort([AOR;AONR;ANONR]);
+Awholestudy=sort([AORwholestudy;AONRwholestudy;ANONRwholestudy]);
 IPNIA=[I;PI;A;IMI;IMP]; % all KA and PKDL cases with symptoms during the study
 
 % Numbers of individuals in different groups
 nI=numel(I); % KA cases
 nOR=numel(OR); % KA cases with both onset and treatment times
 nNONR=numel(NONR); % KA cases w/o onset or treatment times
+nNONRwholestudy=numel(NONRwholestudy); 
 nONR=numel(ONR); % KA cases w/ onset time but no treatment time
+nONRwholestudy=numel(ONRwholestudy); % KA cases w/ onset time but no treatment time
 nRNO=numel(RNO); % KA cases w/ treatment time but no onset time
+nRNOwholestudy=numel(RNOwholestudy);
 nNO=numel(NO); % KA cases w/ no onset time
 nRL=numel(RL); % KA relapse cases
 nRLO=numel(RLO); % KA relapse cases w/ relapse time
@@ -160,15 +186,21 @@ nPI=numel(PI); % PKDL cases w/ KA onset before startyr or before immigration
 nPA=numel(PA); % PKDL cases w/o prior KA
 nA=numel(A); % KA cases who may have had active KA at start of study
 nAONR=numel(AONR); % potentially active KA cases without treatment time
+nAONRwholestudy=numel(AONRwholestudy);
 nANONR=numel(ANONR); % potentially active KA cases without onset or treatment time
+nANONRwholestudy=numel(ANONRwholestudy);
 nIPNIA=numel(IPNIA); % potential infection sources
 disp('162')
 %% DRAW INITIAL MISSING KA ONSET AND TREATMENT TIMES
 % Create vectors of lower and upper bounds for onset month
 tIlb=NaN(n,1);
+tIlbwholestudy=NaN(nwholestudy,1);
 tIlb(I)=max(stata_month(data.KAYR(I),1)-origin,tB(I)+2); % +2 because individuals can only be infected 1 month after birth or immigration
+tIlbwholestudy(Iwholestudy)=max(stata_month(wholestudy.KAYR(Iwholestudy),1)-origin,tBwholestudy(Iwholestudy)+2);
 tIub=NaN(n,1);
+tIubwholestudy=NaN(nwholestudy,1);
 tIub(I)=min(min(min(stata_month(data.KAYR(I),12)-origin,tR(I)-1),tP(I)-2),tD(I)-1);
+tIubwholestudy(Iwholestudy)=min(min(min(stata_month(wholestudy.KAYR(Iwholestudy),12)-origin,tRwholestudy(Iwholestudy)-1),tPwholestudy(Iwholestudy)-2),tDwholestudy(Iwholestudy)-1);
 % Fit negative binomial distribution to onset-to-treatment (OT) times
 [r0,p0]=FitOTdistn(tIwholestudy,tRwholestudy); % use all cases with onset and treatment times (not only those with onset in 2002-2010) as this distn is mostly used to impute missing times for active KA cases at start of study
 
@@ -199,9 +231,13 @@ disp('195')
 % Create vectors of lower and upper bounds for onset month for active KA
 % cases at start of study
 tIlbA=NaN(n,1);
+tIlbAwholestudy=NaN(nwholestudy,1);
 tIlbA(A)=max(stata_month(data.KAYR(A),1)-origin,tB(A)+2);
+tIlbAwholestudy(Awholestudy)=max(stata_month(wholestudy.KAYR(Awholestudy),1)-origin,tBwholestudy(Awholestudy)+2);
 tIubA=NaN(n,1);
+tIubAwholestudy=NaN(nwholestudy,1);
 tIubA(A)=min(min(min(stata_month(data.KAYR(A),12)-origin,tR(A)-1),tP(A)-2),tD(A)-1);
+tIubAwholestudy(Awholestudy)=min(min(min(stata_month(wholestudy.KAYR(Awholestudy),12)-origin,tRwholestudy(Awholestudy)-1),tPwholestudy(Awholestudy)-2),tDwholestudy(Awholestudy)-1);
 
 for i=1:nANONR
     tI(ANONR(i))=randi([tIlbA(ANONR(i)),tIubA(ANONR(i))],1);
@@ -216,14 +252,46 @@ for i=1:nAONR
         tR(AONR(i))=tI(AONR(i))+nbinrnd(r0,p0)+1;
     end
 end
-disp('216')
+
+% repeat commands as above but for whole-study variables
+for i=1:nNONRwholestudy
+    while isnan(tRwholestudy(NONRwholestudy(i))) || tRwholestudy(NONRwholestudy(i))>min(tDwholestudy(NONRwholestudy(i)),tmax)
+        tRwholestudy(NONRwholestudy(i))=tIwholestudy(NONRwholestudy(i))+nbinrnd(r0,p0)+1;
+    end
+end
+for i=1:nONRwholestudy
+    while isnan(tRwholestudy(ONRwholestudy(i))) || tRwholestudy(ONRwholestudy(i))>min(tDwholestudy(ONRwholestudy(i)),tmax)
+        tRwholestudy(ONRwholestudy(i))=tIwholestudy(ONRwholestudy(i))+nbinrnd(r0,p0)+1;
+    end
+end
+for i=1:nRNOwholestudy
+    tIwholestudy(RNOwholestudy(i))=randi([tIlbwholestudy(RNOwholestudy(i)),tIubwholestudy(RNOwholestudy(i))],1);
+end
+tIlbAwholestudy=NaN(nwholestudy,1);
+tIlbAwholestudy(Awholestudy)=max(stata_month(wholestudy.KAYR(Awholestudy),1)-origin,tBwholestudy(Awholestudy)+2);
+tIubAwholestudy=NaN(nwholestudy,1);
+tIubAwholestudy(Awholestudy)=min(min(min(stata_month(wholestudy.KAYR(Awholestudy),12)-origin,tRwholestudy(Awholestudy)-1),tPwholestudy(Awholestudy)-2),tDwholestudy(Awholestudy)-1);
+for i=1:nANONRwholestudy
+    tIwholestudy(ANONRwholestudy(i))=randi([tIlbAwholestudy(ANONRwholestudy(i)),tIubAwholestudy(ANONRwholestudy(i))],1);
+end
+for i=1:nANONRwholestudy
+    while isnan(tRwholestudy(ANONRwholestudy(i))) || tRwholestudy(ANONRwholestudy(i))>min(tDwholestudy(ANONRwholestudy(i)),tmax)
+        tRwholestudy(ANONRwholestudy(i))=tIwholestudy(ANONRwholestudy(i))+nbinrnd(r0,p0)+1;
+    end
+end
+for i=1:nAONRwholestudy
+    while isnan(tRwholestudy(AONRwholestudy(i))) || tRwholestudy(AONRwholestudy(i))>min(tDwholestudy(AONRwholestudy(i)),tmax)
+        tRwholestudy(AONRwholestudy(i))=tIwholestudy(AONRwholestudy(i))+nbinrnd(r0,p0)+1;
+    end
+end
+
 % Make vector of recovery times for treated individuals and death times for
 % untreated individuals
 tRorD=tR;
 tRorD(DpreR)=tD(DpreR);
 
 %% DRAW INITIAL KA RELAPSE AND RELAPSE TREATMENT TIMES
-p4=mle(tRL(RLO)-tR(RLO)-1,'distribution','geo');
+p4=mle(tRLwholestudy(RLOwholestudy)-tRwholestudy(RLOwholestudy)-1,'distribution','geo'); %study-wide distribution
 disp('224')
 % Relapse times for relapsers with missing relapse time
 for i=1:nRLNO
