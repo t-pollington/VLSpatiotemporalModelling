@@ -638,8 +638,13 @@ for i=1:nA1
         disp(j);
         disp(tA(j)+1); %this error occurs when this is NaN or tA(j) is NaN
         disp(min(min(min(tRA(j),tEM(j)),tD(j)),tmax));
+        if isnan(tA(j))
+            error('isnan(tA(j)), line 642')
+        end
     end
 end
+
+return
 % Add infectiousness to 2nd observations for internal migrators with active
 % asymptomatic infection at the start of the study who recovered during
 % their 2nd observation
