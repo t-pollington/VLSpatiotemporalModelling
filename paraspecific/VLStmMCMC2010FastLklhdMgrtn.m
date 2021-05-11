@@ -543,7 +543,13 @@ tRA(IM_IN(ismember(IM_OUT,Asx)))=tmax+2;
 
 for i=1:nAsx
     j=Asx(i);
-    tA(j)=randsample(1:tmax,1,true,probA(j,2:tmax+1));
+    try
+        tA(j)=randsample(1:tmax,1,true,probA(j,2:tmax+1));
+    catch e %e is an MException struct. Thanks @PeterO https://uk.mathworks.com/matlabcentral/answers/325475-display-error-message-and-execute-catch#answer_255132
+        fprintf(2,'The identifier was:\n%s',e.identifier);
+        fprintf(2,'There was an error! The message was:\n%s',e.message);
+    end
+    
     if ismember(j,IM_OUT)
         j1=IM_IN(IM_OUT==j);
         probAIP=[geopdf(0:rng(j1,2)-tA(j)-2,p2),1-geocdf(rng(j1,2)-tA(j)-2,p2)];
