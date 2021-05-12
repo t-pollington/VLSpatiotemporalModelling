@@ -30,3 +30,5 @@ Error in VLStmMCMC2010FastLklhdMgrtn (line 633)
 Error in RunMCMC (line 15)
 VLStmMCMC2010FastLklhdMgrtn(data,r1,p10,a,b,p2,u{i},beta0s(i),alpha0s(i),epsilon0,delta0s(i),lambda0s(i),h0s(i),h1s(i),h2s(i),h3s(i),hmssngs(i),h40s(i),pI0s(i),typ{i},niters,plotOutpt,rslts{i},para); 
 >> 
+
+Why does probA(j,2:tmax+1) contain all zeroes?
