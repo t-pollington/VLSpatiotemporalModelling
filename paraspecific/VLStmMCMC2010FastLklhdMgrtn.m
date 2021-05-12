@@ -483,13 +483,22 @@ cum_probA=sum(probA(:,1:end-1),2);
 % Set initial asymptomatic infection and recovery times
 tA=NaN(n,1);
 tRA=NaN(n,1);
+if any(isnan(tA))
+    disp('487, isnan(tA)')
+end
 % Set infection and recovery times for individuals initially previously
 % asymptomatically infected to 0
 tA(prevA)=0;
+if any(isnan(tA))
+    disp('493, isnan(tA)')
+end
 tRA(prevA)=0;
 % Set infection time for individuals initially actively asymptomatically
 % infected to 0
 tA(actvA)=0;
+if any(isnan(tA))
+    disp('500, isnan(tA)')
+end
 % Draw recovery times for individuals initially actively asymptomatically
 % infected
 for i=1:numel(actvA)
@@ -537,12 +546,20 @@ tRA(Susend)=tmax+1;
 % internal migrators asymptomatically infected during 1st observation to
 % dummy time of tmax+2
 tA(IM_IN(ismember(IM_OUT,Asx)))=tmax+2;
+if any(isnan(tA))
+    disp('550, isnan(tA)')
+end
+find(isnan(tA),1)
 tRA(IM_IN(ismember(IM_OUT,Asx)))=tmax+2;
 % Draw asymptomatic infection and recovery times according to probability
 % of asymptomatic infection from KA and PKDL cases
-
+if any(isnan(probA(j,2:tmax+1)))
+    find(isnan(probA(j,2:tmax+1)),1)
+    error('any(isnan(probA(j,2:tmax+1)))')
+end
 for i=1:nAsx
     j=Asx(i);
+    disp(strcat('j = ',string(j)))
     % an intermittent bug "W must contain non-negative values with at least
     % one positive value." is occurring on randsample()
     try
@@ -550,7 +567,10 @@ for i=1:nAsx
     catch e %e is an MException struct. Thanks @PeterO https://uk.mathworks.com/matlabcentral/answers/325475-display-error-message-and-execute-catch#answer_255132
         fprintf(2,'The identifier was:\n%s',e.identifier);
         fprintf(2,'There was an error! The message was:\n%s',e.message);
+        disp('La!')
+        probA(j,2:tmax+1)
         any(isnan(probA(j,2:tmax+1)))
+        error('STOP!!!');
     end
     disp('554')
     if ismember(j,IM_OUT)
@@ -569,6 +589,7 @@ for i=1:nAsx
     catch e
         fprintf(2,'The identifier was:\n%s',e.identifier);
         fprintf(2,'There was an error! The message was:\n%s',e.message);
+        disp('584')
         any(isnan(probAIP))
     end
     disp('567')
@@ -609,6 +630,12 @@ for i=1:nPA
 %         tA(j)=0;
 %     else
         tA(j)=max(0,tRA(j)-(geornd(p2)+1));
+        if isnan(tA(j))
+            disp('625, isnan(tA(j))')
+        end
+        if any(isnan(tA))
+            disp('628, any(isnan(tA))')
+        end
     end
 end
 S0PA=PA(tA(PA)>0);
