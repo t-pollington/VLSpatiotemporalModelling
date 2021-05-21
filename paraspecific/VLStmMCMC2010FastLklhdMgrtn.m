@@ -483,22 +483,13 @@ cum_probA=sum(probA(:,1:end-1),2);
 % Set initial asymptomatic infection and recovery times
 tA=NaN(n,1);
 tRA=NaN(n,1);
-if any(isnan(tA))
-    disp('487, isnan(tA)')
-end
 % Set infection and recovery times for individuals initially previously
 % asymptomatically infected to 0
 tA(prevA)=0;
-if any(isnan(tA))
-    disp('493, isnan(tA)')
-end
 tRA(prevA)=0;
 % Set infection time for individuals initially actively asymptomatically
 % infected to 0
 tA(actvA)=0;
-if any(isnan(tA))
-    disp('500, isnan(tA)')
-end
 % Draw recovery times for individuals initially actively asymptomatically
 % infected
 for i=1:numel(actvA)
@@ -546,9 +537,7 @@ tRA(Susend)=tmax+1;
 % internal migrators asymptomatically infected during 1st observation to
 % dummy time of tmax+2
 tA(IM_IN(ismember(IM_OUT,Asx)))=tmax+2;
-if any(isnan(tA))
-    disp('550, isnan(tA)')
-end
+
 find(isnan(tA),1)
 tRA(IM_IN(ismember(IM_OUT,Asx)))=tmax+2;
 % Draw asymptomatic infection and recovery times according to probability
