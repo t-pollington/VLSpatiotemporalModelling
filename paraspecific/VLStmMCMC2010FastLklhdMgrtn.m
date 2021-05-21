@@ -151,8 +151,8 @@ IMP=find(PothrObs&tP<tIM&tRP>tIM|PpreEXTIM); % active PKDL cases who internally 
 % Create index vectors for 1st and 2nd observations of internal migrators 
 % (complicated definition to allow for subsetting of the data and to ensure
 % 1st and 2nd obs are matched in IM_OUT and IM_IN)
-IM_OUT=find(ismember(data.RESP_ID,data.ORIG_ID(INTMIG_IN))&INTMIG_OUT) % observation in 1st HH
-IM_IN=find(ismember(data.ORIG_ID,data.RESP_ID(INTMIG_OUT))&INTMIG_IN) % observation in 2nd HH
+IM_OUT=find(ismember(data.RESP_ID,data.ORIG_ID(INTMIG_IN))&INTMIG_OUT); % observation in 1st HH
+IM_IN=find(ismember(data.ORIG_ID,data.RESP_ID(INTMIG_OUT))&INTMIG_IN); % observation in 2nd HH
 %IM_IN=IM_IN(ismember(IM_IN,IM_OUT+1)); % for para-specific which have an internal study mig but which is lost to the para, this balances them, ready for IM_OUT_IN=[IM_OUT,IM_IN] later
 % KA cases who (potentially) initially had active KA
 AOR=find(actvK&~isnan(tI)&~isnan(tR)); % cases with active KA
@@ -670,7 +670,6 @@ for i=1:nA1
         end
     end
 end
-
 return
 % Add infectiousness to 2nd observations for internal migrators with active
 % asymptomatic infection at the start of the study who recovered during
