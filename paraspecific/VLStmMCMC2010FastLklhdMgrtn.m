@@ -537,51 +537,22 @@ tRA(Susend)=tmax+1;
 % internal migrators asymptomatically infected during 1st observation to
 % dummy time of tmax+2
 tA(IM_IN(ismember(IM_OUT,Asx)))=tmax+2;
-
-find(isnan(tA),1)
 tRA(IM_IN(ismember(IM_OUT,Asx)))=tmax+2;
 % Draw asymptomatic infection and recovery times according to probability
 % of asymptomatic infection from KA and PKDL cases
-if any(isnan(probA(j,2:tmax+1)))
-    find(isnan(probA(j,2:tmax+1)),1)
-    error('any(isnan(probA(j,2:tmax+1)))')
-end
+
 for i=1:nAsx
     j=Asx(i);
-    disp(strcat('j = ',string(j)))
-    % an intermittent bug "W must contain non-negative values with at least
-    % one positive value." is occurring on randsample()
-    try
-        tA(j)=randsample(1:tmax,1,true,probA(j,2:tmax+1));
-    catch e %e is an MException struct. Thanks @PeterO https://uk.mathworks.com/matlabcentral/answers/325475-display-error-message-and-execute-catch#answer_255132
-        fprintf(2,'The identifier was:\n%s',e.identifier);
-        fprintf(2,'There was an error! The message was:\n%s',e.message);
-        disp('La!')
-        probA(j,2:tmax+1)
-        any(isnan(probA(j,2:tmax+1)))
-        error('STOP!!!');
-    end
-    disp('554')
+    tA(j)=randsample(1:tmax,1,true,probA(j,2:tmax+1));
     if ismember(j,IM_OUT)
-        disp('556')
         j1=IM_IN(IM_OUT==j);
         probAIP=[geopdf(0:rng(j1,2)-tA(j)-2,p2),1-geocdf(rng(j1,2)-tA(j)-2,p2)];
         fwdRA=[tA(j)+1:rng(j1,2)-1,tmax+1];
     else
-        disp('561')
         probAIP=[geopdf(0:rng(j,2)-tA(j)-2,p2),1-geocdf(rng(j,2)-tA(j)-2,p2)];
         fwdRA=[tA(j)+1:rng(j,2)-1,tmax+1];
     end
-    disp('565')
-    try
-        tRA(j)=fwdRA(randsample(numel(fwdRA),1,true,probAIP));
-    catch e
-        fprintf(2,'The identifier was:\n%s',e.identifier);
-        fprintf(2,'There was an error! The message was:\n%s',e.message);
-        disp('584')
-        any(isnan(probAIP))
-    end
-    disp('567')
+    tRA(j)=fwdRA(randsample(numel(fwdRA),1,true,probAIP));
 end
 % Make index vectors for 1st and 2nd observations of internal migrators who
 % get asymptomatically infected
@@ -619,12 +590,6 @@ for i=1:nPA
 %         tA(j)=0;
 %     else
         tA(j)=max(0,tRA(j)-(geornd(p2)+1));
-        if isnan(tA(j))
-            disp('625, isnan(tA(j))')
-        end
-        if any(isnan(tA))
-            disp('628, any(isnan(tA))')
-        end
     end
 end
 S0PA=PA(tA(PA)>0);
@@ -646,20 +611,9 @@ nA1=numel(A1);
 hA=zeros(n,tmax);
 for i=1:nA1
     j=A1(i);
-    try
-        hA(j,tA(j)+1:min(min(min(tRA(j),tEM(j)),tD(j)),tmax))=h40;
-    catch e
-        fprintf(2,'The identifier was:\n%s',e.identifier);
-        fprintf(2,'There was an error! The message was:\n%s',e.message);
-        disp(j);
-        disp(tA(j)+1); %this error occurs when this is NaN or tA(j) is NaN
-        disp(min(min(min(tRA(j),tEM(j)),tD(j)),tmax));
-        if isnan(tA(j))
-            error('isnan(tA(j)), line 642')
-        end
-    end
+    hA(j,tA(j)+1:min(min(min(tRA(j),tEM(j)),tD(j)),tmax))=h40;
 end
-return
+
 % Add infectiousness to 2nd observations for internal migrators with active
 % asymptomatic infection at the start of the study who recovered during
 % their 2nd observation
@@ -2197,7 +2151,7 @@ for k=1:niters
     acc_rate_PA=acc_PA/(acc_PA+rej_PA);
 
     % Print output
-    if mod(k,1e1)==0 || k==niters % every 1000 iterations. 
+    if mod(k,1e3)==0 || k==niters % every 1000 iterations. 
         fprintf('Iteration %d done.\n', k); % display iteration number
         fprintf('Current likelihood=%6.4g\n', LL(k));
         fprintf('LL1=%6.4g\n', terms(k,1));
